@@ -8,10 +8,10 @@ app.use(express.json());
 // Helper functions from your original code
 const { GetBestChoice, generateTerms } = require("./searchAlgorithm");
 
-app.get("/users", async (req, res) => {
+app.get("/Users", async (req, res) => {
   try {
     // Fetch user data from Firebase
-    const userSnapshot = await db.collection("users").get();
+    const userSnapshot = await db.collection("Users").get();
     const userList = [];
 
     userSnapshot.forEach((doc) => userList.push(doc.data()));
@@ -24,13 +24,37 @@ app.get("/users", async (req, res) => {
   }
 });
 
-app.get("/users/:id", async (req, res) => {
+app.post("/usersByIds", async (req, res) => {
+  try {
+    const userIds = req.body.userIds; // Array of user IDs passed from frontend
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: "No user IDs provided" });
+    }
+
+    // Fetch user data based on IDs
+    const userList = [];
+    for (let id of userIds) {
+      const userDoc = await db.collection("Users").doc(id).get();
+      if (userDoc.exists) {
+        userList.push(userDoc.data());
+      }
+    }
+
+    res.status(200).json({ users: userList });
+  } catch (error) {
+    console.error("Error fetching users by IDs: ", error);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+app.get("/Users/:id", async (req, res) => {
   try {
     // Get the user ID from the request parameters
     const userId = req.params.id;
 
     // Fetch the user document from Firebase using the provided ID
-    const userDoc = await db.collection("users").doc(userId).get();
+    const userDoc = await db.collection("Users").doc(userId).get();
 
     // Check if the user exists
     if (!userDoc.exists) {
@@ -39,6 +63,7 @@ app.get("/users/:id", async (req, res) => {
 
     // Get the user data
     const userData = userDoc.data();
+    console.log(userData);
 
     // Return the user data
     res.status(200).json({ user: userData });
@@ -52,7 +77,7 @@ app.get("/users/:id", async (req, res) => {
 app.get("/properties", async (req, res) => {
   try {
     // Fetch property data from Firebase
-    const propertySnapshot = await db.collection("properties").get();
+    const propertySnapshot = await db.collection("Properties").get();
     const propertyList = [];
 
     propertySnapshot.forEach((doc) => propertyList.push(doc.data()));
@@ -61,6 +86,30 @@ app.get("/properties", async (req, res) => {
     res.status(200).json({ properties: propertyList });
   } catch (error) {
     console.error("Error fetching properties: ", error);
+    res.status(500).json({ error: "Failed to fetch properties" });
+  }
+});
+
+app.post("/propertiesByIds", async (req, res) => {
+  try {
+    const propertyIds = req.body.propertyIds; // Array of property IDs passed from frontend
+
+    if (!Array.isArray(propertyIds) || propertyIds.length === 0) {
+      return res.status(400).json({ error: "No property IDs provided" });
+    }
+
+    // Fetch property data based on IDs
+    const propertyList = [];
+    for (let id of propertyIds) {
+      const propertyDoc = await db.collection("Properties").doc(id).get();
+      if (propertyDoc.exists) {
+        propertyList.push(propertyDoc.data());
+      }
+    }
+
+    res.status(200).json({ properties: propertyList });
+  } catch (error) {
+    console.error("Error fetching properties by IDs: ", error);
     res.status(500).json({ error: "Failed to fetch properties" });
   }
 });
@@ -82,7 +131,7 @@ app.post("/search", async (req, res) => {
     const bestProperties = GetBestChoice(propertyList, filter);
 
     // Return sorted properties
-    res.status(200).json({ properties: bestProperties });
+    res.status(200).json({ properties: bestProperties, terms, filter });
   } catch (error) {
     console.error("Error processing search: ", error);
     res.status(500).json({ error: "Failed to process search" });
