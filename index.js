@@ -1,7 +1,7 @@
 const express = require("express");
 const { db } = require("./firebaseConfig"); // Firebase config
 const app = express();
-const port = 3000;
+const port = 5000;
 
 app.use(express.json());
 
@@ -111,6 +111,31 @@ app.post("/propertiesByIds", async (req, res) => {
   } catch (error) {
     console.error("Error fetching properties by IDs: ", error);
     res.status(500).json({ error: "Failed to fetch properties" });
+  }
+});
+
+app.get("/properties/:id", async (req, res) => {
+  try {
+    // Get the property ID from the request parameters
+    const propertyId = req.params.id;
+
+    // Fetch the property document from Firebase using the provided ID
+    const propertyDoc = await db.collection("properties").doc(propertyId).get();
+
+    // Check if the property exists
+    if (!propertyDoc.exists) {
+      return res.status(404).json({ error: "Property not found" });
+    }
+
+    // Get the property data
+    const propertyData = propertyDoc.data();
+    console.log(propertyData);
+
+    // Return the property data
+    res.status(200).json({ property: propertyData });
+  } catch (error) {
+    console.error("Error fetching property: ", error);
+    res.status(500).json({ error: "Failed to fetch property" });
   }
 });
 
